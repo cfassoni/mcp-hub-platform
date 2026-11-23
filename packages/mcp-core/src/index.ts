@@ -12,3 +12,62 @@ export function createHealthPayload(): HealthPayload {
     service: PLATFORM_NAME,
   };
 }
+
+export type {
+  BlobResourceContent,
+  IMcpPlugin,
+  JsonPrimitive,
+  JsonSchema,
+  JsonValue,
+  PluginAuthRequirements,
+  PluginAuthType,
+  PluginCategory,
+  PluginExecutionContext,
+  PluginLoginField,
+  PluginLoginFieldType,
+  PluginLoginPrompt,
+  PluginMetadata,
+  PromptArgument,
+  PromptDefinition,
+  PromptMessage,
+  PromptResult,
+  PromptRole,
+  ResourceContent,
+  ResourceDefinition,
+  TextResourceContent,
+  ToolAnnotations,
+  ToolContentBlock,
+  ToolDefinition,
+  ToolInputSchema,
+  ToolResult,
+  UpstreamValidationResult,
+} from './contracts/plugin.js';
+
+export type {
+  EncryptedPayload,
+  IStorageDriver,
+  IsoUtcTimestamp,
+  IssueAccessTokenInput,
+  OAuthAuthCodeRecord,
+  OAuthClientKind,
+  OAuthClientRecord,
+  OAuthTokenEndpointAuthMethod,
+  OAuthTokenRecord,
+  SaveAuthCodeInput,
+  UpsertOAuthClientInput,
+  UpsertUserCredentialInput,
+  UpsertUserInput,
+  UserCredentialRecord,
+  UserRecord,
+  WebSessionRecord,
+} from './contracts/storage.js';
+
+export { UpstreamClientError, sanitizeUpstreamText } from './errors/upstream-client-error.js';
+export type { UpstreamClientErrorOptions } from './errors/upstream-client-error.js';
+
+export {
+  PLUGIN_SLUG_MAX_LENGTH,
+  PLUGIN_SLUG_REGEX,
+  assertValidPluginSlug,
+  isValidPluginSlug,
+} from './validation/slug.js';

@@ -22,7 +22,7 @@ Canonical operational task queue in `en-US`, distilled from the preliminary desi
 | ID | Task | Tier | Status | Dependencies | Acceptance Criteria (DoD) |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **TSK-01.1** (#1) | Monorepo Scaffold (`npm workspaces`, TypeScript, Hono, `npm run gate`) | Standard | done | TSK-00.2 | Workspaces `apps/*`, `packages/*`, `plugins/*` wired with unified `lint`, `format:check`, `typecheck`, `test:coverage` via `npm run gate`. |
-| **TSK-01.2** (#3) | `@mcphub/core` Contracts (`IMcpPlugin`, `IStorageDriver`, OAuth/Session types) | Complex | todo | TSK-01.1 | Strict TypeScript contracts in `packages/mcp-core` matching `docs/rules/core-invariants.md`. |
+| **TSK-01.2** (#3) | `@mcphub/core` Contracts (`IMcpPlugin`, `IStorageDriver`, OAuth/Session types) | Complex | done | TSK-01.1 | Standalone spec at `docs/architecture/mcp-core-contracts.md`; strict TypeScript contracts, slug guards, and `UpstreamClientError` in `packages/mcp-core` matching `docs/rules/core-invariants.md`. |
 | **TSK-01.3** (#4) | AES-256-GCM Encryption Engine (`crypto.subtle`) | Complex | todo | TSK-01.2 | Web Crypto AES-256-GCM module with 12-byte random IV, auth tag verification, env master key; 100% statement coverage. |
 | **TSK-01.4** (#5) | SQLite Storage Driver (Node.js 26 `node:sqlite`, WAL mode) | Standard | todo | TSK-01.3 | `IStorageDriver` implementation covering `users`, `user_credentials`, `oauth_clients`, `oauth_tokens`, `web_sessions` with `ON DELETE CASCADE`; 100% coverage. |
 | **TSK-01.5** (#6) | Cloudflare D1 Storage Driver | Standard | deferred | TSK-01.2 | Deferred to Post-MVP per PO VPS/Podman decision (`IStorageDriver` portability preserved in `@mcphub/core`). |
