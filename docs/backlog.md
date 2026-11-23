@@ -21,11 +21,28 @@ Canonical operational task queue in `en-US`, distilled from the preliminary desi
 
 | ID | Task | Tier | Status | Dependencies | Acceptance Criteria (DoD) |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **TSK-01.1** | Monorepo Scaffold (`npm workspaces`, TypeScript, Hono, `npm run gate`) | Standard | todo | TSK-00.2 | Workspaces `apps/*`, `packages/*`, `plugins/*` wired with unified `lint`, `format:check`, `typecheck`, `test:coverage` via `npm run gate`. |
-| **TSK-01.2** | `@mcphub/core` Contracts (`IMcpPlugin`, `IStorageDriver`, OAuth/Session types) | Complex | todo | TSK-01.1 | Strict TypeScript contracts in `packages/mcp-core` matching `docs/rules/core-invariants.md`. |
-| **TSK-01.3** | AES-256-GCM Encryption Engine (`crypto.subtle`) | Complex | todo | TSK-01.2 | Web Crypto AES-256-GCM module with 12-byte random IV, auth tag verification, env master key; 100% statement coverage. |
-| **TSK-01.4** | SQLite Storage Driver (Node.js 26 `node:sqlite`, WAL mode) | Standard | todo | TSK-01.3 | `IStorageDriver` implementation covering `users`, `user_credentials`, `oauth_clients`, `oauth_tokens`, `web_sessions` with `ON DELETE CASCADE`; 100% coverage. |
-| **TSK-01.5** | Cloudflare D1 Storage Driver | Standard | todo | TSK-01.2 | `IStorageDriver` implementation targeting Cloudflare D1 with identical schema and 100% coverage. |
+| **TSK-01.1** (#1) | Monorepo Scaffold (`npm workspaces`, TypeScript, Hono, `npm run gate`) | Standard | done | TSK-00.2 | Workspaces `apps/*`, `packages/*`, `plugins/*` wired with unified `lint`, `format:check`, `typecheck`, `test:coverage` via `npm run gate`. |
+| **TSK-01.2** (#3) | `@mcphub/core` Contracts (`IMcpPlugin`, `IStorageDriver`, OAuth/Session types) | Complex | todo | TSK-01.1 | Strict TypeScript contracts in `packages/mcp-core` matching `docs/rules/core-invariants.md`. |
+| **TSK-01.3** (#4) | AES-256-GCM Encryption Engine (`crypto.subtle`) | Complex | todo | TSK-01.2 | Web Crypto AES-256-GCM module with 12-byte random IV, auth tag verification, env master key; 100% statement coverage. |
+| **TSK-01.4** (#5) | SQLite Storage Driver (Node.js 26 `node:sqlite`, WAL mode) | Standard | todo | TSK-01.3 | `IStorageDriver` implementation covering `users`, `user_credentials`, `oauth_clients`, `oauth_tokens`, `web_sessions` with `ON DELETE CASCADE`; 100% coverage. |
+| **TSK-01.5** (#6) | Cloudflare D1 Storage Driver | Standard | todo | TSK-01.2 | `IStorageDriver` implementation targeting Cloudflare D1 with identical schema and 100% coverage. |
+
+### Micro-Spec: `TSK-01.1` (#1) — Monorepo Scaffold & Quality Gate
+
+1. **Scope & Explicit Non-Scope:**
+   - *Scope:* Root `npm workspaces` (`apps/*`, `packages/*`, `plugins/*`), shared `tsconfig.base.json`, ESLint 9 flat config, Prettier (ignoring `*.md`/`docs/`), Vitest + `@vitest/coverage-v8` (100% statement threshold), minimal `@mcphub/core` health payload helper, minimal `@mcphub/gateway` Hono `GET /health` vertical slice verifying cross-workspace ESM resolution, and `plugins/.gitkeep`.
+   - *Non-Scope:* `IMcpPlugin`/`IStorageDriver` contracts (`TSK-01.2`), AES-256-GCM (`TSK-01.3`), SQLite/D1 drivers (`TSK-01.4`/`TSK-01.5`), OAuth endpoints, and GitHub Actions CI (`TSK-06.2`).
+2. **Input/Output Contract:**
+   - `@mcphub/core` exports `PLATFORM_NAME = 'mcp-hub-platform'`, `HealthPayload`, and `createHealthPayload(): HealthPayload` returning `{ status: 'ok', service: PLATFORM_NAME }`.
+   - `@mcphub/gateway` exports `createApp(): Hono` handling `GET /health` with `200 OK` JSON matching `createHealthPayload()` (plus default export `createApp()`).
+   - Root `npm run gate` runs `lint`, `format:check`, `typecheck`, and `test:coverage`.
+3. **Invariants & Failure Modes:**
+   - Strict TypeScript (`strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`, `NodeNext` ESM) and Web Standards only in `src/` (no Node-only APIs).
+   - Custom export condition `@mcphub/source` resolves workspace TypeScript source during `typecheck` and Vitest runs; `npm run build` emits ESM `.js` + `.d.ts` into `dist/` without cross-workspace `rootDir` leaks.
+   - `npm run gate` fails closed on any lint, format, type, or `<100%` statement coverage error.
+4. **Verification Criteria:**
+   - Pre-implementation `npm test` fails reproducibly on missing `src/` modules.
+   - Post-implementation `npm run build` and `npm run gate` exit `0` with `100%` statement coverage on `packages/mcp-core/src` and `apps/mcp-gateway/src`.
 
 ---
 
@@ -83,5 +100,5 @@ Canonical operational task queue in `en-US`, distilled from the preliminary desi
 | ID | Task | Tier | Status | Dependencies | Acceptance Criteria (DoD) |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **TSK-06.1** | 60-Day Inactivity Purge Worker | Standard | todo | TSK-01.4, TSK-01.5 | Scheduled job (Docker cron + Cloudflare Cron Trigger) cascading deletion for `last_activity_at < NOW() - 60 days`. |
-| **TSK-06.2** | GitHub Actions CI Pipeline | Standard | todo | TSK-01.1 | Automated workflow running `npm run gate` and security/SCA checks on PRs. |
+| **TSK-06.2** (#2) | GitHub Actions CI Pipeline | Standard | todo | TSK-01.1 | Automated workflow running `npm run gate` and security/SCA checks on PRs. |
 | **TSK-06.3** | End-to-End Multi-Client Homologation | Complex | todo | TSK-04.5, TSK-05.3 | Verified live connections from Claude Desktop, Claude Web, ChatGPT, and Cursor. |
