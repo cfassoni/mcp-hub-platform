@@ -100,5 +100,20 @@ Canonical operational task queue in `en-US`, distilled from the preliminary desi
 | ID | Task | Tier | Status | Dependencies | Acceptance Criteria (DoD) |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **TSK-06.1** | 60-Day Inactivity Purge Worker | Standard | todo | TSK-01.4, TSK-01.5 | Scheduled job (Docker cron + Cloudflare Cron Trigger) cascading deletion for `last_activity_at < NOW() - 60 days`. |
-| **TSK-06.2** (#2) | GitHub Actions CI Pipeline | Standard | todo | TSK-01.1 | Automated workflow running `npm run gate` and security/SCA checks on PRs. |
+| **TSK-06.2** (#2) | GitHub Actions CI Pipeline | Standard | done | TSK-01.1 | Automated workflow running `npm run gate` and security/SCA checks on PRs. |
 | **TSK-06.3** | End-to-End Multi-Client Homologation | Complex | todo | TSK-04.5, TSK-05.3 | Verified live connections from Claude Desktop, Claude Web, ChatGPT, and Cursor. |
+
+### Micro-Spec: `TSK-06.2` (#2) — GitHub Actions CI Pipeline
+
+1. **Scope & Explicit Non-Scope:**
+   - *Scope:* Add `.github/workflows/ci.yml` running automated verification on PRs and pushes to `main`, plus a repository-level contract test `test/ci-workflow.test.ts` included in `vitest.config.ts`, and cross-OS LF parity (`.gitattributes` + `.prettierrc.json` `endOfLine: "auto"`).
+   - *Non-Scope:* Deployment/CD pipelines, container image publishing, SAST/CodeQL setup, or unrelated backlog updates (`#10`).
+2. **Input/Output Contract:**
+   - Triggers on `pull_request` and `push` targeting `main`, cancels superseded runs via `concurrency`, and enforces least-privilege `contents: read`.
+   - Runs on `ubuntu-latest` with Node.js `26` and npm cache, executing `npm ci`, `npm run build`, `npm run gate`, and `npm audit --audit-level=high`.
+3. **Invariants & Failure Modes:**
+   - Any lint, format, typecheck, `<100%` statement coverage, workspace build, or high/critical vulnerability fails the CI job with non-zero exit code.
+   - Including `test/**/*.test.ts` in `vitest.config.ts` `test.include` does not alter `coverage.include` scope (`packages/*/src`, `apps/mcp-gateway/src`, `plugins/*/src`).
+4. **Verification Criteria:**
+   - Pre-fix `npm test` fails reproducibly on `test/ci-workflow.test.ts` while `.github/workflows/ci.yml` is absent.
+   - Post-fix `npm run build` and `npm run gate` exit `0` with all suites passing and `100%` statement coverage.
