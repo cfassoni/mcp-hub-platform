@@ -15,7 +15,8 @@ Canonical non-negotiable constraints for `mcp-hub-platform`. Architect, QA, Code
   1. **CIMD (Claude Web):** Resolving HTTPS `client_id` metadata documents MUST enforce strict Anti-SSRF (HTTPS only; reject loopback, RFC 1918 private ranges, link-local, cloud metadata IPs, and unsafe redirects), a 64 KB response size cap, a 5-second timeout, and a 1-hour TTL cache.
   2. **DCR (RFC 7591 — Gemini Web / VS Code):** `POST /oauth/register` persists validated `client_id` metadata and `redirect_uris` via `IStorageDriver`.
   3. **Static Clients (ChatGPT):** Pre-configured `client_id` MUST validate callbacks strictly against official OpenAI callback origins (`https://chat.openai.com/aip/...`, `https://chatgpt.com/aip/...`).
-- **SSO Session Cookie:** Issue `mcphub_session` with `HttpOnly`, `Secure`, `SameSite=Lax` (30–60 day TTL) enabling 1-click consent and explicit account switching.
+- **Authoritative Public Origin (`cloudflared` / Proxy):** Derive all public OAuth URLs (RFC 9728, RFC 8414, `WWW-Authenticate`, redirect URIs) strictly from the configured `APP_BASE_URL` HTTPS origin, never from internal plain-HTTP `req.url` or untrusted forwarding headers.
+- **SSO Session Cookie:** Issue `mcphub_session` as a host-only cookie (omit `Domain` attribute) with `HttpOnly`, `Secure`, `SameSite=Lax` (30–60 day TTL), isolating staging and friendly-user production subdomains while enabling 1-click consent and account switching.
 - **Token Hygiene:** Store only cryptographic hashes (`token_hash`, `cookie_hash`) in persistence — never plaintext tokens. Issuing a new access token for `(user_id, client_id)` MUST revoke prior active tokens for that pair.
 
 ## 3. Multi-Tenant Vault, Cryptography & Zero-Trust Privacy
@@ -38,6 +39,6 @@ Canonical non-negotiable constraints for `mcp-hub-platform`. Architect, QA, Code
 ## 6. Isomorphic Portability & Plugin Decoupling
 
 - **Web Standards Core:** `packages/*`, `apps/mcp-gateway`, and `plugins/*` MUST use TypeScript and Web Standards (`Request`, `Response`, `fetch`, `crypto.subtle`) with zero Node-only APIs in core business logic.
-- **Storage Abstraction:** All database access goes through `IStorageDriver`, implemented by Node.js 26 `node:sqlite` (WAL mode) for Docker/VPS and Cloudflare D1 for Workers.
+- **Storage Abstraction & Runtime Targets:** All database access goes through `IStorageDriver`. Primary MVP deployment targets rootless OCI containers on Podman (VPS running Node.js 26 + `node:sqlite` WAL mode behind `cloudflared` HTTPS tunnels across isolated staging and friendly-user production instances); Cloudflare Workers/D1 implementation is deferred to Post-MVP while preserving strict Web Standards + `IStorageDriver` portability.
 - **Plugin Isolation:** Every connector implements `IMcpPlugin` under `plugins/<slug>/` without modifying gateway routing or core auth logic.
 - **User-Facing Locale Scope:** Engineering artifacts remain `en-US`; user-facing MCP primitive names/descriptions and portal copy MAY use `pt-BR` when explicitly specified for Brazilian connectors/UI.

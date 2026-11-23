@@ -4,7 +4,7 @@ Canonical operational task queue in `en-US`, distilled from the preliminary desi
 
 - **Standard tier tasks:** Author an inline micro-spec (<50 lines) under the task entry before Step 2 (QA red-test).
 - **Complex tier tasks:** Author a standalone spec under `docs/architecture/` before Step 2.
-- **Status Legend:** `todo` | `in-progress` | `blocked` | `done`
+- **Status Legend:** `todo` | `in-progress` | `blocked` | `deferred` | `done`
 
 ---
 
@@ -25,7 +25,8 @@ Canonical operational task queue in `en-US`, distilled from the preliminary desi
 | **TSK-01.2** (#3) | `@mcphub/core` Contracts (`IMcpPlugin`, `IStorageDriver`, OAuth/Session types) | Complex | todo | TSK-01.1 | Strict TypeScript contracts in `packages/mcp-core` matching `docs/rules/core-invariants.md`. |
 | **TSK-01.3** (#4) | AES-256-GCM Encryption Engine (`crypto.subtle`) | Complex | todo | TSK-01.2 | Web Crypto AES-256-GCM module with 12-byte random IV, auth tag verification, env master key; 100% statement coverage. |
 | **TSK-01.4** (#5) | SQLite Storage Driver (Node.js 26 `node:sqlite`, WAL mode) | Standard | todo | TSK-01.3 | `IStorageDriver` implementation covering `users`, `user_credentials`, `oauth_clients`, `oauth_tokens`, `web_sessions` with `ON DELETE CASCADE`; 100% coverage. |
-| **TSK-01.5** (#6) | Cloudflare D1 Storage Driver | Standard | todo | TSK-01.2 | `IStorageDriver` implementation targeting Cloudflare D1 with identical schema and 100% coverage. |
+| **TSK-01.5** (#6) | Cloudflare D1 Storage Driver | Standard | deferred | TSK-01.2 | Deferred to Post-MVP per PO VPS/Podman decision (`IStorageDriver` portability preserved in `@mcphub/core`). |
+| **TSK-01.6** (#8) | OCI/Podman Packaging, Node.js 26 HTTP Entrypoint & `cloudflared` Config | Standard | todo | TSK-01.4 | Rootless `Containerfile` (`node:26-slim`), Node 26 HTTP adapter, `.env.example` (`APP_BASE_URL`, `SQLITE_PATH`, etc.), staging/friendly-user prod isolation. |
 
 ### Micro-Spec: `TSK-01.1` (#1) — Monorepo Scaffold & Quality Gate
 
@@ -99,9 +100,10 @@ Canonical operational task queue in `en-US`, distilled from the preliminary desi
 
 | ID | Task | Tier | Status | Dependencies | Acceptance Criteria (DoD) |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **TSK-06.1** | 60-Day Inactivity Purge Worker | Standard | todo | TSK-01.4, TSK-01.5 | Scheduled job (Docker cron + Cloudflare Cron Trigger) cascading deletion for `last_activity_at < NOW() - 60 days`. |
+| **TSK-06.1** | 60-Day Inactivity Purge Worker | Standard | todo | TSK-01.4 | Scheduled job (Podman/VPS timer or cron; Cloudflare Cron Trigger deferred with D1) cascading deletion for `last_activity_at < NOW() - 60 days`. |
 | **TSK-06.2** (#2) | GitHub Actions CI Pipeline | Standard | done | TSK-01.1 | Automated workflow running `npm run gate` and security/SCA checks on PRs. |
 | **TSK-06.3** | End-to-End Multi-Client Homologation | Complex | todo | TSK-04.5, TSK-05.3 | Verified live connections from Claude Desktop, Claude Web, ChatGPT, and Cursor. |
+| **TSK-06.4** (#9) | Support SEP-2640 MCP Skills Extension | Complex | todo | TSK-03.2, TSK-04.5 | Late Phase 4 / Post-MVP: standalone spec and SEP-2640 Skills Extension support across gateway and plugins for compliant harnesses. |
 
 ### Micro-Spec: `TSK-06.2` (#2) — GitHub Actions CI Pipeline
 
