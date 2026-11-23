@@ -1,0 +1,36 @@
+# Scratch & agent temporary artifacts (§2)
+scratch/
+
+# Dependencies & build outputs
+node_modules/
+dist/
+build/
+coverage/
+.next/
+out/
+*.tsbuildinfo
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+.dev.vars
+*.pem
+*.key
+
+# Local databases (SQLite WAL files)
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Cloudflare Workers local state
+.wrangler/
+
+# Logs & OS artifacts
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
