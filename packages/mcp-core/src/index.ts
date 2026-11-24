@@ -71,3 +71,21 @@ export {
   assertValidPluginSlug,
   isValidPluginSlug,
 } from './validation/slug.js';
+
+export {
+  AES_GCM_AUTH_TAG_BIT_LENGTH,
+  AES_GCM_AUTH_TAG_BYTE_LENGTH,
+  AES_GCM_IV_BYTE_LENGTH,
+  AES_GCM_KEY_BYTE_LENGTH,
+  DEFAULT_ENCRYPTION_KEY_VERSION,
+  EncryptionError,
+  createAesGcmCipher,
+  parseMasterKey,
+} from './crypto/aes-gcm.js';
+export type {
+  AesGcmCipherOptions,
+  AesGcmOperationOptions,
+  EncryptionErrorCode,
+  IAesGcmCipher,
+  MasterKeyInput,
+} from './crypto/aes-gcm.js';

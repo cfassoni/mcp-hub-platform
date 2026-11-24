@@ -23,7 +23,7 @@ function collectTypeScriptFiles(dir: string): string[] {
 }
 
 describe('@mcphub/core runtime portability invariants', () => {
-  it('contains zero node:* imports and zero process.env references across packages/mcp-core/src', () => {
+  it('contains zero node:* imports, zero process.env references, and zero Buffer references across packages/mcp-core/src', () => {
     const sourceFiles = collectTypeScriptFiles(CORE_SRC_DIR);
     expect(sourceFiles.length).toBeGreaterThan(0);
 
@@ -39,6 +39,10 @@ describe('@mcphub/core runtime portability invariants', () => {
 
       if (/\bprocess\.env\b/.test(content)) {
         violations.push(`${relPath}: contains forbidden process.env reference`);
+      }
+
+      if (/\bBuffer\b/.test(content)) {
+        violations.push(`${relPath}: contains forbidden Buffer reference`);
       }
     }
 
