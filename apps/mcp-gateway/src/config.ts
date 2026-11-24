@@ -49,7 +49,8 @@ function parseIntegerRange(
   return parsed;
 }
 
-function parseAppBaseUrl(raw: string | undefined): string {
+/** Validates and normalizes `APP_BASE_URL` to a root HTTPS origin string without trailing slash. */
+export function parseAppBaseUrl(raw: string | undefined): string {
   const trimmed = raw?.trim() ?? '';
   if (trimmed.length === 0) {
     throw new RangeError('APP_BASE_URL is required and must be an HTTPS origin');
