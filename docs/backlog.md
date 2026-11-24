@@ -78,7 +78,7 @@ Canonical operational task queue in `en-US`, distilled from the preliminary desi
 
 | ID | Task | Tier | Status | Dependencies | Acceptance Criteria (DoD) |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **TSK-02.1** | Discovery Metadata Endpoints (RFC 8414 & RFC 9728) | Standard | todo | TSK-01.2 | `GET /.well-known/oauth-authorization-server` and `GET /.well-known/oauth-protected-resource` returning spec-compliant JSON. |
+| **TSK-02.1** (#17) | Discovery Metadata Endpoints (RFC 8414 & RFC 9728) | Standard | done | TSK-01.2 | `GET /.well-known/oauth-authorization-server`, `GET /.well-known/oauth-protected-resource`, and `GET /.well-known/oauth-protected-resource/:slug/mcp` anchored strictly to `APP_BASE_URL` in `apps/mcp-gateway/src/oauth/discovery.ts`; 100% coverage. |
 | **TSK-02.2** | Canonical MCP Challenge (`WWW-Authenticate`) | Standard | todo | TSK-02.1 | Anonymous calls to `/:slug/mcp` return `401` with `WWW-Authenticate: Bearer resource_metadata="..."`. |
 | **TSK-02.3** | CIMD Validator with Anti-SSRF (Claude Web) | Complex | todo | TSK-02.1 | HTTPS-only metadata fetch rejecting private/loopback/link-local IPs & unsafe redirects, 64 KB cap, 5s timeout, 1h TTL cache. |
 | **TSK-02.4** | Dynamic Client Registration — DCR RFC 7591 (Gemini / VS Code) | Standard | todo | TSK-01.4 | `POST /oauth/register` validating and persisting dynamic clients via `IStorageDriver`. |
@@ -86,6 +86,20 @@ Canonical operational task queue in `en-US`, distilled from the preliminary desi
 | **TSK-02.6** | OAuth 2.1 Handshake with PKCE S256 & Token Exchange | Complex | todo | TSK-02.3, TSK-02.4 | `/oauth/authorize` and `/oauth/token` enforcing PKCE `S256`, hashed token storage, and scoped issuance. |
 | **TSK-02.7** | SSO Session Management (`mcphub_session` Cookie & 1-Click Consent) | Complex | todo | TSK-02.6 | `HttpOnly`, `Secure`, `SameSite=Lax` 30–60d cookie; 1-click consent view with account switch flow. |
 | **TSK-02.8** | Token Auto-Rotation & Hygiene | Standard | todo | TSK-02.6 | Revokes previous tokens for the same `(user_id, client_id)` pair upon new issuance. |
+
+### Micro-Spec: `TSK-02.1` (#17) — Discovery Metadata Endpoints (RFC 8414 & RFC 9728)
+
+1. **Scope & Explicit Non-Scope:**
+   - *Scope:* Pure Web-Standards RFC 8414 (`GET /.well-known/oauth-authorization-server`) and RFC 9728 (`GET /.well-known/oauth-protected-resource` and path-scoped `GET /.well-known/oauth-protected-resource/:slug/mcp`) discovery metadata builders and Hono route registration in `apps/mcp-gateway/src/oauth/discovery.ts`, wired into `createApp`.
+   - *Non-Scope:* `401 WWW-Authenticate` challenge (`TSK-02.2`), CIMD Anti-SSRF fetcher (`TSK-02.3`), `/oauth/register` (`TSK-02.4`), `/oauth/authorize` & `/oauth/token` (`TSK-02.6`), and ad-hoc manifest endpoints (`/.well-known/mcp-app.json` strictly forbidden).
+2. **Input/Output Contract:**
+   - `buildAuthorizationServerMetadata(appBaseUrl, options?)` returns RFC 8414 JSON (`issuer`, `authorization_endpoint` `/oauth/authorize`, `token_endpoint` `/oauth/token`, `registration_endpoint` `/oauth/register`, `response_types_supported: ['code']`, `grant_types_supported: ['authorization_code']`, `code_challenge_methods_supported: ['S256']`, `token_endpoint_auth_methods_supported: ['none', 'client_secret_post', 'client_secret_basic']`, `client_id_metadata_document_supported: true`, optional `scopes_supported` when non-empty).
+   - `buildProtectedResourceMetadata(appBaseUrl, options?)` returns RFC 9728 JSON (`resource`, `authorization_servers: [origin]`, `bearer_methods_supported: ['header']`, optional `scopes_supported` when non-empty).
+   - `GatewayAppOptions` adds optional `appBaseUrl?: string` and `scopesSupported?: readonly string[]`; `createApp` resolves `appBaseUrl ?? config?.appBaseUrl` and wires `registerDiscoveryRoutes`.
+3. **Invariants & Failure Modes:**
+   - All metadata URLs derive exclusively from configured HTTPS `APP_BASE_URL` (never `c.req.url`, `Host`, or `X-Forwarded-*`); fail closed with `503` JSON (`{ error: 'server_misconfigured', error_description: 'APP_BASE_URL is not configured' }`) when `appBaseUrl` is absent; reject invalid `:slug` on `/.well-known/oauth-protected-resource/:slug/mcp` with `404` (`isValidPluginSlug`); emit `Cache-Control: public, max-age=300`; zero `node:*`, zero `process.env`, zero `Buffer` in `discovery.ts`.
+4. **Verification Criteria:**
+   - Pre-implementation red test fails reproducibly; post-implementation `npm run build`, `npm run gate` (100% V8 coverage), and `npm audit --audit-level=high` exit `0`.
 
 ---
 
