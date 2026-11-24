@@ -24,7 +24,7 @@ Canonical operational task queue in `en-US`, distilled from the preliminary desi
 | **TSK-01.1** (#1) | Monorepo Scaffold (`npm workspaces`, TypeScript, Hono, `npm run gate`) | Standard | done | TSK-00.2 | Workspaces `apps/*`, `packages/*`, `plugins/*` wired with unified `lint`, `format:check`, `typecheck`, `test:coverage` via `npm run gate`. |
 | **TSK-01.2** (#3) | `@mcphub/core` Contracts (`IMcpPlugin`, `IStorageDriver`, OAuth/Session types) | Complex | done | TSK-01.1 | Standalone spec at `docs/architecture/mcp-core-contracts.md`; strict TypeScript contracts, slug guards, and `UpstreamClientError` in `packages/mcp-core` matching `docs/rules/core-invariants.md`. |
 | **TSK-01.3** (#4) | AES-256-GCM Encryption Engine (`crypto.subtle`) | Complex | done | TSK-01.2 | Standalone spec at `docs/architecture/aes-256-gcm-encryption.md`; Web Crypto AES-256-GCM cipher (`createAesGcmCipher`, `parseMasterKey`, `EncryptionError`) with 12-byte random IV, 128-bit auth tag verification, AAD binding, strict unpadded Base64url codec, and 100% V8 coverage. |
-| **TSK-01.4** (#5) | SQLite Storage Driver (Node.js 26 `node:sqlite`, WAL mode) | Standard | todo | TSK-01.3 | `IStorageDriver` implementation covering `users`, `user_credentials`, `oauth_clients`, `oauth_tokens`, `web_sessions` with `ON DELETE CASCADE`; 100% coverage. |
+| **TSK-01.4** (#5) | SQLite Storage Driver (Node.js 26 `node:sqlite`, WAL mode) | Standard | done | TSK-01.3 | `IStorageDriver` implementation in `packages/storage-sqlite` (`@mcphub/storage-sqlite`) covering `users`, `user_credentials`, `oauth_clients`, `oauth_auth_codes`, `oauth_tokens`, and `web_sessions` with WAL mode and `ON DELETE CASCADE`; 100% coverage. |
 | **TSK-01.5** (#6) | Cloudflare D1 Storage Driver | Standard | deferred | TSK-01.2 | Deferred to Post-MVP per PO VPS/Podman decision (`IStorageDriver` portability preserved in `@mcphub/core`). |
 | **TSK-01.6** (#8) | OCI/Podman Packaging, Node.js 26 HTTP Entrypoint & `cloudflared` Config | Standard | todo | TSK-01.4 | Rootless `Containerfile` (`node:26-slim`), Node 26 HTTP adapter, `.env.example` (`APP_BASE_URL`, `SQLITE_PATH`, etc.), staging/friendly-user prod isolation. |
 
@@ -44,6 +44,20 @@ Canonical operational task queue in `en-US`, distilled from the preliminary desi
 4. **Verification Criteria:**
    - Pre-implementation `npm test` fails reproducibly on missing `src/` modules.
    - Post-implementation `npm run build` and `npm run gate` exit `0` with `100%` statement coverage on `packages/mcp-core/src` and `apps/mcp-gateway/src`.
+
+### Micro-Spec: `TSK-01.4` (#5) — SQLite Storage Driver
+
+1. **Scope & Explicit Non-Scope:**
+   - *Scope:* New workspace package `packages/storage-sqlite` (`@mcphub/storage-sqlite`) implementing `@mcphub/core`'s frozen `IStorageDriver` on Node.js 26 built-in `node:sqlite` (`DatabaseSync`) with WAL mode, `PRAGMA foreign_keys = ON`, `ON DELETE CASCADE`, and 100% V8 coverage, preserving `@mcphub/core`'s zero-`node:*` portability invariant.
+   - *Non-Scope:* Cloudflare D1 driver (`TSK-01.5`, deferred), OCI/Podman packaging (`TSK-01.6`), and OAuth/gateway routes (`Epics 02–03`).
+2. **Input/Output Contract:**
+   - Exports `SqliteStorageDriverOptions` (`{ readonly filename: string; readonly busyTimeoutMs?: number }`), `SqliteStorageDriver implements IStorageDriver`, and `createSqliteStorageDriver(options)`.
+   - Implements all 20 async methods from `docs/architecture/mcp-core-contracts.md §3.4` over 6 tables (`users`, `user_credentials`, `oauth_clients`, `oauth_auth_codes`, `oauth_tokens`, `web_sessions`).
+3. **Invariants & Failure Modes:**
+   - All SQL queries 100% parameterized (zero SQL interpolation); `PRAGMA foreign_keys = ON`, `PRAGMA journal_mode = WAL`, and `PRAGMA synchronous = NORMAL`; `ON DELETE CASCADE` on all 4 user-owned child tables.
+   - Enforces `assertValidPluginSlug` on `upsertUserCredential` and `saveAuthCode`, atomic `consumeAuthCode` (`UPDATE ... RETURNING`), transactional `issueAccessToken` (`BEGIN IMMEDIATE` / `COMMIT` / `ROLLBACK`), `email.trim().toLowerCase()` normalization, strict `< cutoffIso` purge, and idempotent `migrate()` / `close()`.
+4. **Verification Criteria:**
+   - Pre-implementation red test fails reproducibly; post-implementation `npm run build`, `npm run gate` (100% V8 statement coverage), and `npm audit --audit-level=high` exit `0`.
 
 ---
 
