@@ -79,7 +79,7 @@ Canonical operational task queue in `en-US`, distilled from the preliminary desi
 | ID | Task | Tier | Status | Dependencies | Acceptance Criteria (DoD) |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **TSK-02.1** (#17) | Discovery Metadata Endpoints (RFC 8414 & RFC 9728) | Standard | done | TSK-01.2 | `GET /.well-known/oauth-authorization-server`, `GET /.well-known/oauth-protected-resource`, and `GET /.well-known/oauth-protected-resource/:slug/mcp` anchored strictly to `APP_BASE_URL` in `apps/mcp-gateway/src/oauth/discovery.ts`; 100% coverage. |
-| **TSK-02.2** | Canonical MCP Challenge (`WWW-Authenticate`) | Standard | todo | TSK-02.1 | Anonymous calls to `/:slug/mcp` return `401` with `WWW-Authenticate: Bearer resource_metadata="..."`. |
+| **TSK-02.2** (#19) | Canonical MCP Challenge (`WWW-Authenticate`) | Standard | done | TSK-02.1 | Anonymous or malformed-auth calls to `/:slug/mcp` return `401` with `WWW-Authenticate: Bearer resource_metadata="..."` and `Cache-Control: no-store` in `apps/mcp-gateway/src/oauth/challenge.ts`; 100% coverage. |
 | **TSK-02.3** | CIMD Validator with Anti-SSRF (Claude Web) | Complex | todo | TSK-02.1 | HTTPS-only metadata fetch rejecting private/loopback/link-local IPs & unsafe redirects, 64 KB cap, 5s timeout, 1h TTL cache. |
 | **TSK-02.4** | Dynamic Client Registration — DCR RFC 7591 (Gemini / VS Code) | Standard | todo | TSK-01.4 | `POST /oauth/register` validating and persisting dynamic clients via `IStorageDriver`. |
 | **TSK-02.5** | Static Pre-Configured Clients (ChatGPT) | Trivial | todo | TSK-02.1 | Validates static `client_id="chatgpt"` strictly against official OpenAI callback origins. |
@@ -98,6 +98,20 @@ Canonical operational task queue in `en-US`, distilled from the preliminary desi
    - `GatewayAppOptions` adds optional `appBaseUrl?: string` and `scopesSupported?: readonly string[]`; `createApp` resolves `appBaseUrl ?? config?.appBaseUrl` and wires `registerDiscoveryRoutes`.
 3. **Invariants & Failure Modes:**
    - All metadata URLs derive exclusively from configured HTTPS `APP_BASE_URL` (never `c.req.url`, `Host`, or `X-Forwarded-*`); fail closed with `503` JSON (`{ error: 'server_misconfigured', error_description: 'APP_BASE_URL is not configured' }`) when `appBaseUrl` is absent; reject invalid `:slug` on `/.well-known/oauth-protected-resource/:slug/mcp` with `404` (`isValidPluginSlug`); emit `Cache-Control: public, max-age=300`; zero `node:*`, zero `process.env`, zero `Buffer` in `discovery.ts`.
+4. **Verification Criteria:**
+   - Pre-implementation red test fails reproducibly; post-implementation `npm run build`, `npm run gate` (100% V8 coverage), and `npm audit --audit-level=high` exit `0`.
+
+### Micro-Spec: `TSK-02.2` (#19) — Canonical MCP Challenge (`WWW-Authenticate`)
+
+1. **Scope & Explicit Non-Scope:**
+   - *Scope:* Pure Web-Standards RFC 9728 §5.1 / RFC 6750 §3 challenge builder (`buildWwwAuthenticateHeader`), Bearer extractor (`extractBearerToken`), `401` response helper (`createUnauthorizedResponse`), and Hono middleware (`registerMcpChallengeMiddleware` / `createMcpChallengeMiddleware`) mounted on `/:slug/mcp` in `apps/mcp-gateway/src/oauth/challenge.ts` and `createApp`.
+   - *Non-Scope:* Bearer token DB validation & credential decryption (`TSK-03.3`), plugin dispatch (`TSK-03.1`), Streamable HTTP transport (`TSK-03.2`), and OAuth token issuance (`TSK-02.6`).
+2. **Input/Output Contract:**
+   - `buildWwwAuthenticateHeader(appBaseUrl, options?)` formats `Bearer resource_metadata="https://<APP_BASE_URL>/.well-known/oauth-protected-resource"` (plus optional `scope`, `error`, `error_description` parameters with strict header-injection validation).
+   - `extractBearerToken(authorizationHeader)` parses `Bearer <token>` (case-insensitive scheme, strict RFC 6750 token characters) returning `string | null`.
+   - Middleware mounted on `/:slug/mcp` enforces valid plugin slug (`404` if invalid), configured `APP_BASE_URL` (`503` fail-closed if missing), and Bearer presence (`401` + `WWW-Authenticate` + `Cache-Control: no-store` JSON `{ error: 'unauthorized', error_description: 'Authentication required' }` if missing/malformed; `await next()` when syntactically valid Bearer token is present).
+3. **Invariants & Failure Modes:**
+   - `resource_metadata` URL derives exclusively from configured HTTPS `APP_BASE_URL` (never `c.req.url`, `Host`, or `X-Forwarded-*`); rejects CR/LF/quotes/backslashes/control chars in header parameters; applies across all HTTP methods (`GET`, `POST`, `DELETE`) on `/:slug/mcp` without affecting `/health` or `/.well-known/*`; zero `node:*`, zero `process.env`, zero `Buffer` in `apps/mcp-gateway/src/oauth/challenge.ts`.
 4. **Verification Criteria:**
    - Pre-implementation red test fails reproducibly; post-implementation `npm run build`, `npm run gate` (100% V8 coverage), and `npm audit --audit-level=high` exit `0`.
 
