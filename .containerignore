@@ -1,0 +1,16 @@
+node_modules
+.git
+.github
+.env
+.env.*
+!.env.example
+scratch
+coverage
+dist
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.db-shm
+*.db-wal
+*.log

@@ -1,0 +1,15 @@
+# Example cloudflared ingress configuration isolating staging and friendly-user production
+# Podman containers on the VPS. Replace <TUNNEL_UUID>, credentials-file, and hostnames.
+#
+# Both containers emit host-only `mcphub_session` cookies (without Domain=), keeping
+# staging and production browser sessions completely isolated.
+
+tunnel: <TUNNEL_UUID>
+credentials-file: /etc/cloudflared/<TUNNEL_UUID>.json
+
+ingress:
+  - hostname: staging-mcp.example.com
+    service: http://127.0.0.1:8788
+  - hostname: mcp.example.com
+    service: http://127.0.0.1:8787
+  - service: http_status:404

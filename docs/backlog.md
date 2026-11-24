@@ -26,7 +26,7 @@ Canonical operational task queue in `en-US`, distilled from the preliminary desi
 | **TSK-01.3** (#4) | AES-256-GCM Encryption Engine (`crypto.subtle`) | Complex | done | TSK-01.2 | Standalone spec at `docs/architecture/aes-256-gcm-encryption.md`; Web Crypto AES-256-GCM cipher (`createAesGcmCipher`, `parseMasterKey`, `EncryptionError`) with 12-byte random IV, 128-bit auth tag verification, AAD binding, strict unpadded Base64url codec, and 100% V8 coverage. |
 | **TSK-01.4** (#5) | SQLite Storage Driver (Node.js 26 `node:sqlite`, WAL mode) | Standard | done | TSK-01.3 | `IStorageDriver` implementation in `packages/storage-sqlite` (`@mcphub/storage-sqlite`) covering `users`, `user_credentials`, `oauth_clients`, `oauth_auth_codes`, `oauth_tokens`, and `web_sessions` with WAL mode and `ON DELETE CASCADE`; 100% coverage. |
 | **TSK-01.5** (#6) | Cloudflare D1 Storage Driver | Standard | deferred | TSK-01.2 | Deferred to Post-MVP per PO VPS/Podman decision (`IStorageDriver` portability preserved in `@mcphub/core`). |
-| **TSK-01.6** (#8) | OCI/Podman Packaging, Node.js 26 HTTP Entrypoint & `cloudflared` Config | Standard | todo | TSK-01.4 | Rootless `Containerfile` (`node:26-slim`), Node 26 HTTP adapter, `.env.example` (`APP_BASE_URL`, `SQLITE_PATH`, etc.), staging/friendly-user prod isolation. |
+| **TSK-01.6** (#8) | OCI/Podman Packaging, Node.js 26 HTTP Entrypoint & `cloudflared` Config | Standard | done | TSK-01.4 | Rootless `Containerfile` (`node:26-slim`), `.containerignore`, `.env.example`, `deploy/cloudflared.example.yml`, pure Web-Standards config/cookie helpers (`apps/mcp-gateway/src/config.ts`), and Node.js 26 HTTP adapter (`apps/mcp-gateway/src/node-server.ts`, `bin/server.mjs`); 100% coverage. |
 
 ### Micro-Spec: `TSK-01.1` (#1) — Monorepo Scaffold & Quality Gate
 
@@ -58,6 +58,19 @@ Canonical operational task queue in `en-US`, distilled from the preliminary desi
    - Enforces `assertValidPluginSlug` on `upsertUserCredential` and `saveAuthCode`, atomic `consumeAuthCode` (`UPDATE ... RETURNING`), transactional `issueAccessToken` (`BEGIN IMMEDIATE` / `COMMIT` / `ROLLBACK`), `email.trim().toLowerCase()` normalization, strict `< cutoffIso` purge, and idempotent `migrate()` / `close()`.
 4. **Verification Criteria:**
    - Pre-implementation red test fails reproducibly; post-implementation `npm run build`, `npm run gate` (100% V8 statement coverage), and `npm audit --audit-level=high` exit `0`.
+
+### Micro-Spec: `TSK-01.6` (#8) — OCI/Podman Packaging & Node.js 26 HTTP Entrypoint
+
+1. **Scope & Explicit Non-Scope:**
+   - *Scope:* Rootless multi-stage OCI `Containerfile` (`node:26-slim`, `USER node`), `.containerignore`, `.env.example`, `deploy/cloudflared.example.yml` (staging vs friendly-user prod isolation), pure Web-Standards gateway config/cookie helpers (`apps/mcp-gateway/src/config.ts`), Node.js 26 `node:http` server adapter (`apps/mcp-gateway/src/node-server.ts`), and thin CLI launcher (`apps/mcp-gateway/bin/server.mjs`).
+   - *Non-Scope:* OAuth 2.1 routes (`Epic 02`), Streamable HTTP transport (`Epic 03`), 60-day inactivity purge scheduler (`TSK-06.1`), and CD pipelines.
+2. **Input/Output Contract:**
+   - `parseGatewayConfig(env)` validates `HOST`, `PORT`, HTTPS-only `APP_BASE_URL` origin, `SQLITE_PATH`, `ENCRYPTION_MASTER_KEY` (via `parseMasterKey`), and `USER_INACTIVITY_TTL_DAYS`.
+   - `resolvePublicUrl(appBaseUrl, pathname)` derives safe public URLs; `formatSessionCookie(value, maxAgeSeconds)` formats host-only `mcphub_session` cookie (omitting `Domain`); `createNodeGatewayServer` and `runGatewayProcess` run `@mcphub/gateway` over `node:http` with graceful shutdown.
+3. **Invariants & Failure Modes:**
+   - `apps/mcp-gateway/src/index.ts` and `config.ts` remain strictly Web Standards (zero `node:*`, zero `process.env`, zero `Buffer`); incoming `Request.url` derives strictly from `APP_BASE_URL` (ignoring untrusted `Host` / `X-Forwarded-*` headers); multi-`Set-Cookie` headers are preserved via `getSetCookie()`; container runs non-root (`USER node`) with `/data` volume and `/health` `HEALTHCHECK`.
+4. **Verification Criteria:**
+   - Pre-implementation red tests fail reproducibly; post-implementation `npm run build`, `npm run gate` (100% V8 coverage on `apps/mcp-gateway/src/**`), and `npm audit --audit-level=high` exit `0`.
 
 ---
 
